@@ -1,0 +1,41 @@
+name: Validate Commit and PR Format
+
+on:
+  push:
+    branches: [main, develop]  # Add your protected branches here
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+jobs:
+  check-format:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check PR Title Format
+      if: ${{ github.event_name == 'pull_request' }}
+      run: |
+        if [[ ! "${{ github.event.pull_request.title }}" =~ ^[a-z]+-[0-9]+:\ .+ ]]; then
+          echo "::error::PR title must follow format: [a-z]-[0-9]: {message}"
+          echo "Observed title: '${{ github.event.pull_request.title }}'"
+          exit 1
+        fi
+
+    - name: Checkout Code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Get full history for commit checks
+
+    - name: Check Commit Messages
+      run: |
+        if [ "${{ github.event_name }}" = "push" ]; then
+          RANGE="${{ github.event.before }}..${{ github.event.after }}"
+        elif [ "${{ github.event_name }}" = "pull_request" ]; then
+          RANGE="${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+        fi
+
+        git log --pretty=format:%s $RANGE | while read -r msg; do
+          if [[ ! "$msg" =~ ^[a-z]+-[0-9]+:\ .+ ]]; then
+            echo "::error::Commit message must follow format: [a-z]-[0-9]: {message}"
+            echo "Offending commit: '$msg'"
+            exit 1
+          fi
+        done
