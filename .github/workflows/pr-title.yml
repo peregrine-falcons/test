@@ -2,7 +2,7 @@ name: Validate Commit and PR Format
 
 on:
   push:
-    branches: [main, develop]  # Add your protected branches here
+    branches: [main, develop]
   pull_request:
     types: [opened, edited, reopened, synchronize]
 
@@ -13,8 +13,9 @@ jobs:
     - name: Check PR Title Format
       if: ${{ github.event_name == 'pull_request' }}
       run: |
-        if [[ ! "${{ github.event.pull_request.title }}" =~ ^[a-z]+-[0-9]+:\ .+ ]]; then
-          echo "::error::PR title must follow format: [a-z]-[0-9]: {message}"
+        if [[ ! "${{ github.event.pull_request.title }}" =~ ^[a-zA-Z]+-[0-9]+:\ .+ ]]; then
+          echo "::error::PR title must follow format: [prefix]-[number]: {message}"
+          echo "Valid examples: 'abc-123: Fix login bug' or 'DEV-456: Update config'"
           echo "Observed title: '${{ github.event.pull_request.title }}'"
           exit 1
         fi
@@ -22,7 +23,7 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # Get full history for commit checks
+        fetch-depth: 0
 
     - name: Check Commit Messages
       run: |
@@ -33,9 +34,10 @@ jobs:
         fi
 
         git log --pretty=format:%s $RANGE | while read -r msg; do
-          if [[ ! "$msg" =~ ^[a-z]+-[0-9]+:\ .+ ]]; then
-            echo "::error::Commit message must follow format: [a-z]-[0-9]: {message}"
+          if [[ ! "$msg" =~ ^[a-zA-Z]+-[0-9]+:\ .+ ]]; then
+            echo "::error::Commit message must follow format: [prefix]-[number]: {message}"
             echo "Offending commit: '$msg'"
+            echo "Valid example: 'fix-789: Resolve null pointer exception'"
             exit 1
           fi
         done
